@@ -21,9 +21,10 @@ model Wallet {
   publicKey String
   userId    String
   user      User     @relation(fields: [userId], references: [id])
-  type      String // "solana" or "ethereum"
+  type      String
+  label     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([publicKey, type])
+  @@unique([publicKey, type, userId, label])
 }

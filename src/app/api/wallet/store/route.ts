@@ -49,12 +49,38 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid wallet type' }, { status: 400 });
     }
 
-    // Store wallet information
+    const existingWallet = await prisma.wallet.findFirst({
+      where: {
+        publicKey,
+        type: walletType,
+        userId: decodedToken.userId
+      }
+    });
+    
+    if (existingWallet) {
+      // Return the existing wallet
+      return NextResponse.json({
+        success: true,
+        wallet: existingWallet,
+        seedPhrase: finalSeedPhrase,
+        message: 'Wallet already exists'
+      });
+    }
+
+    // Create a new wallet if it doesn't exist
+    const walletCount = await prisma.wallet.count({
+      where: {
+        type: walletType,
+        userId: decodedToken.userId
+      }
+    });
+    
     const wallet = await prisma.wallet.create({
       data: {
         publicKey,
         type: walletType,
-        userId: decodedToken.userId
+        userId: decodedToken.userId,
+        label: `Wallet ${walletCount + 1}`
       }
     });
 
