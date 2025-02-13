@@ -136,15 +136,17 @@ const WalletManager = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [seedPhrase, setSeedPhrase] = useState("");
-
   useEffect(() => {
+    if (currencyState.phrase) {
+      setSeedPhrase(currencyState.phrase);
+    } else {
+      const mnemonic = generateMnemonic();
+      setSeedPhrase(mnemonic);
+    }
+
     if (currencyState.name) {
       localStorage.setItem("selectedCurrency", JSON.stringify(currencyState));
     }
-    const mnemonic = generateMnemonic();
-    setSeedPhrase(mnemonic);
-
-    console.log("mnemonic", mnemonic);
   }, [currencyState]);
 
   useEffect(() => {
@@ -171,6 +173,7 @@ const WalletManager = () => {
         body: JSON.stringify({
           seedPhrase: seedPhrase,
           walletType: currencyState.name,
+          label: `${currencyState.name}-${Math.floor(Math.random() * 1000000)}`,
         }),
       });
 

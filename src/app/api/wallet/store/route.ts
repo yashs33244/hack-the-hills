@@ -28,7 +28,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const { seedPhrase, walletType } = await req.json();
+    const { seedPhrase, walletType, label } = await req.json();
 
     // Generate new seed phrase if none provided
     const finalSeedPhrase = seedPhrase || generateMnemonic();
@@ -51,8 +51,8 @@ export async function POST(req: Request) {
 
     const existingWallet = await prisma.wallet.findFirst({
       where: {
-        publicKey,
-        type: walletType,
+        label: label,
+        publicKey: publicKey,
         userId: decodedToken.userId
       }
     });
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
         publicKey,
         type: walletType,
         userId: decodedToken.userId,
-        label: `Wallet ${walletCount + 1}`
+        label: label
       }
     });
 
