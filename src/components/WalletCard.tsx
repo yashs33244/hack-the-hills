@@ -26,11 +26,13 @@ const WalletCard = ({
 }) => {
   const [showQR, setShowQR] = useState(false);
   const [showInitialQR, setShowInitialQR] = useState(isNewWallet);
+  const [amount, setAmount] = useState<number | null>(null);
+  const [isAmountInputVisible, setIsAmountInputVisible] = useState(false);
+
   const {
     isTransactionModalOpen,
     setIsTransactionModalOpen,
     recipientAddress,
-    amount,
     initiateTransaction,
   } = useTransaction({ wallet });
 
@@ -51,7 +53,14 @@ const WalletCard = ({
   };
 
   const handleTransactionClick = () => {
-    initiateTransaction("RecipientAddressHere", 1.0);
+    setIsAmountInputVisible(true);
+  };
+
+  const handleAmountSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (amount !== null) {
+      setIsTransactionModalOpen(true);
+    }
   };
 
   const qrValue = JSON.stringify({
@@ -110,18 +119,30 @@ const WalletCard = ({
               <QRCode value={qrValue} size={200} />
             </div>
           )}
-          <Button className="w-full" onClick={handleTransactionClick}>
-            New Transaction
-          </Button>
+          {isAmountInputVisible ? (
+            <form onSubmit={handleAmountSubmit} className="flex gap-2">
+              <input
+                type="number"
+                step="0.01"
+                placeholder="Enter amount in SOL"
+                className="flex-1 p-2 border rounded-lg"
+                onChange={(e) => setAmount(parseFloat(e.target.value))}
+              />
+              <Button type="submit">Submit</Button>
+            </form>
+          ) : (
+            <Button className="w-full" onClick={handleTransactionClick}>
+              New Transaction
+            </Button>
+          )}
         </div>
       </CardContent>
 
       <TransactionModal
         isOpen={isTransactionModalOpen}
         onClose={() => setIsTransactionModalOpen(false)}
-        wallet={wallet}
-        recipientAddress={recipientAddress}
-        amount={amount}
+        senderPublicKey={wallet.publicKey}
+        amount={amount || 0}
       />
     </Card>
   );
