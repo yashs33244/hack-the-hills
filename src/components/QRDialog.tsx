@@ -64,6 +64,9 @@ const QRDialog: React.FC<QRDialogProps> = ({
           <p className="text-sm text-black">
             <span className="font-semibold">Public Key:</span> {publicKey}
           </p>
+          <p className="text-sm text-black">
+            <span className="font-semibold">Public Key:</span> {privateKey}
+          </p>
           <p className="text-sm text-red-600">
             Warning: Do not share your private key or seed phrase with anyone.
             This QR code contains sensitive information.

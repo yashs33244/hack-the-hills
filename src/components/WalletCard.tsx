@@ -13,6 +13,7 @@ export interface Wallet {
   seedPhrase: string;
   type: "solana" | "ethereum";
   createdAt: string;
+  label: string;
 }
 
 const WalletCard = ({
@@ -73,7 +74,9 @@ const WalletCard = ({
     <Card className="mb-4">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          <span className="capitalize">{wallet.type} Wallet</span>
+          <span className="capitalize">
+            {wallet.label} ({wallet.type} Wallet)
+          </span>
           <span className="text-sm text-gray-500">
             {new Date(wallet.createdAt).toLocaleDateString()}
           </span>

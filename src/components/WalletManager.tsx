@@ -14,6 +14,7 @@ const WalletManager = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [seedPhrase, setSeedPhrase] = useState("");
+  const [walletLabel, setWalletLabel] = useState("");
   const [newWalletId, setNewWalletId] = useState<string | null>(null);
   const [isQRDialogOpen, setIsQRDialogOpen] = useState(false);
   const [walletDetails, setWalletDetails] = useState<{
@@ -43,6 +44,11 @@ const WalletManager = () => {
   }, []);
 
   const handleStoreWallet = async () => {
+    if (!walletLabel.trim()) {
+      setError("Please enter a label for your wallet");
+      return;
+    }
+
     setIsGenerating(true);
     setError("");
 
@@ -58,7 +64,7 @@ const WalletManager = () => {
         body: JSON.stringify({
           seedPhrase: mnemonic,
           walletType: currencyState.name,
-          label: `${currencyState.name}`,
+          label: walletLabel.trim(),
         }),
       });
 
@@ -69,13 +75,13 @@ const WalletManager = () => {
       }
 
       setNewWalletId(data.wallet.id);
-      console.log(data);
       setWalletDetails({
         publicKey: data.wallet.publicKey,
         privateKey: data.privateKey,
         seedPhrase: data.seedPhrase,
       });
-      setIsQRDialogOpen(true); // Open the QR dialog
+      setIsQRDialogOpen(true);
+      setWalletLabel(""); // Reset the label after successful creation
     } catch (error) {
       console.error("Error storing wallet:", error);
       setError("Failed to store wallet. Please try again.");
@@ -98,6 +104,16 @@ const WalletManager = () => {
               </Alert>
             )}
             <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 text-black mb-2">
+                Wallet Label
+              </label>
+              <input
+                type="text"
+                className="block w-full p-2 border border-gray-300 rounded-md mb-4"
+                placeholder="Enter a name for your wallet"
+                value={walletLabel}
+                onChange={(e) => setWalletLabel(e.target.value)}
+              />
               <label className="block text-sm font-medium text-gray-700 text-black">
                 Seed Phrase
               </label>
