@@ -11,10 +11,8 @@ const AuthPage = () => {
   const [password, setPassword] = useState("");
   const router = useRouter();
   const { toast } = useToast();
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     try {
       const endpoint = isLogin ? "/api/auth/login" : "/api/auth/signup";
       const response = await fetch(endpoint, {
@@ -24,24 +22,28 @@ const AuthPage = () => {
         },
         body: JSON.stringify({ email, password }),
       });
-
       const data = await response.json();
-      localStorage.setItem("token", data.token);
-      console.log("token", data.token);
 
       if (!response.ok) {
         throw new Error(data.error || "Authentication failed");
       }
-      console.log(data);
 
-      if (isLogin || data.token != undefined || data.token != null) {
+      // For login, the token is nested in user object
+      const token = isLogin ? data.user.token : data.token;
+
+      if (token) {
+        localStorage.setItem("token", token);
         router.push("/wallet");
       } else {
-        toast({
-          title: "Account created successfully",
-          description: "Please login with your credentials",
-        });
-        setIsLogin(true);
+        if (!isLogin) {
+          toast({
+            title: "Account created successfully",
+            description: "Please login with your credentials",
+          });
+          setIsLogin(true);
+        } else {
+          throw new Error("No token received");
+        }
       }
     } catch (error: any) {
       toast({
@@ -51,7 +53,6 @@ const AuthPage = () => {
       });
     }
   };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-black">
       <div className="max-w-md w-full space-y-8 p-8 bg-black bg-opacity-50 backdrop-blur-sm rounded-xl">

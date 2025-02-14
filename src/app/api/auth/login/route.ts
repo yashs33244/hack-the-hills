@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { signToken } from '@/lib/auth';
 import { z } from 'zod';
+import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
 
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const token = await signToken({ userId: user.id });
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'fallback-secret-key-change-in-production');
 
     if (!token) {
       throw new Error('Token generation failed');
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
     // Set cookie
     const response = NextResponse.json({ 
       success: true,
-      user: { id: user.id, email: user.email }
+      user: { id: user.id, email: user.email , token: token}
     });
     
     response.cookies.set('token', token, {
