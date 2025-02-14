@@ -7,7 +7,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3002:3002"
+      - "3000:3000"
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://postgres:mysecretpassword@db:5432/wallet
