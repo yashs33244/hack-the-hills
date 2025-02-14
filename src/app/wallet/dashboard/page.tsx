@@ -3,6 +3,7 @@
 import Link from "next/link";
 import WalletManager from "@/components/WalletManager";
 import { ArrowLeft } from "lucide-react";
+import WalletsFromSeed from "@/components/WalletsFromSeed";
 
 export default function WalletSection() {
   return (

@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
-import { mnemonicToSeed, generateMnemonic } from 'bip39';
+import { generateMnemonic } from 'bip39';
 import { Keypair } from '@solana/web3.js';
-import { Wallet } from 'ethers';
-import * as ed25519 from 'ed25519-hd-key';
+import { ethers } from 'ethers';
+import { derivePath } from 'ed25519-hd-key';
 
 const prisma = new PrismaClient();
 
@@ -14,13 +14,11 @@ interface DecodedToken {
 
 export async function POST(req: Request) {
   try {
-    // Verify authentication
     const token = req.headers.get('Authorization')?.split(' ')[1];
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify JWT token
     let decodedToken: DecodedToken;
     try {
       decodedToken = jwt.verify(token, process.env.JWT_SECRET || 'secret') as DecodedToken;
@@ -29,22 +27,19 @@ export async function POST(req: Request) {
     }
 
     const { seedPhrase, walletType, label } = await req.json();
-
-    // Generate new seed phrase if none provided
     const finalSeedPhrase = seedPhrase || generateMnemonic();
-
-    // Generate wallet based on type
     let publicKey: string;
     
     if (walletType === 'solana') {
-      const seed = await mnemonicToSeed(finalSeedPhrase);
-      const solanaSeed = seed.toString('hex');
-      const derivedSeed = ed25519.derivePath("m/44'/501'/0'/0'", solanaSeed).key;
-      const solanaKeypair = Keypair.fromSeed(derivedSeed);
-      publicKey = solanaKeypair.publicKey.toBase58();
+      const mnemonic = ethers.Mnemonic.fromPhrase(finalSeedPhrase);
+      const seed = await mnemonic.computeSeed();
+      const path = "m/44'/501'/0'/0'";
+      const derivedSeed = derivePath(path, Buffer.from(seed).toString('hex')).key;
+      const keypair = Keypair.fromSeed(derivedSeed);
+      publicKey = keypair.publicKey.toBase58();
     } else if (walletType === 'ethereum') {
-      const ethWallet = Wallet.fromPhrase(finalSeedPhrase);
-      publicKey = ethWallet.address;
+      const wallet = ethers.Wallet.fromPhrase(finalSeedPhrase);
+      publicKey = wallet.address;
     } else {
       return NextResponse.json({ error: 'Invalid wallet type' }, { status: 400 });
     }
@@ -53,29 +48,19 @@ export async function POST(req: Request) {
       where: {
         label: label,
         publicKey: publicKey,
-        userId: decodedToken.userId,
+        userId: decodedToken.userId
       }
     });
     
     if (existingWallet) {
-      // Return the existing wallet
-      
       return NextResponse.json({
-        success: false,
+        success: true,
         wallet: existingWallet,
         seedPhrase: finalSeedPhrase,
         message: 'Wallet already exists'
       });
     }
 
-    // Create a new wallet if it doesn't exist
-    const walletCount = await prisma.wallet.count({
-      where: {
-        type: walletType,
-        userId: decodedToken.userId
-      }
-    });
-    
     const wallet = await prisma.wallet.create({
       data: {
         publicKey,
@@ -90,7 +75,6 @@ export async function POST(req: Request) {
       wallet,
       seedPhrase: finalSeedPhrase
     });
-
   } catch (error) {
     console.error('Error storing wallet:', error);
     return NextResponse.json(

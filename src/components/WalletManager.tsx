@@ -7,6 +7,8 @@ import { Alert, AlertDescription } from "./ui/alert";
 import { useRecoilValue, useRecoilState } from "recoil";
 import { currency } from "../app/store/currency";
 import QRCode from "react-qr-code";
+import WalletsFromSeed from "./WalletsFromSeed";
+import { WalletInfo } from "@/utils/wallet";
 
 interface Wallet {
   id: string;
@@ -136,6 +138,7 @@ const WalletManager = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [seedPhrase, setSeedPhrase] = useState("");
+  const [walletSeed, setWalletSeed] = useState<string>("");
   useEffect(() => {
     if (currencyState.phrase) {
       setSeedPhrase(currencyState.phrase);
@@ -173,11 +176,14 @@ const WalletManager = () => {
         body: JSON.stringify({
           seedPhrase: seedPhrase,
           walletType: currencyState.name,
-          label: `${currencyState.name}-${Math.floor(Math.random() * 1000000)}`,
+          label: `${currencyState.name}`,
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to store wallet");
+      const data = await response.json();
+
+      if (data.success === false) return alert("Wallet already exists");
+
       await response.json();
     } catch (error) {
       console.error("Error storing wallet:", error);
@@ -189,8 +195,8 @@ const WalletManager = () => {
 
   return (
     <div className="flex gap-6">
-      <div className="w-2/3">
-        <Card>
+      <div className="w-4/4">
+        <Card className="bg-white max-w-xl">
           <CardHeader>
             <CardTitle>Generate New {currencyState.name} Wallet</CardTitle>
           </CardHeader>
@@ -229,9 +235,12 @@ const WalletManager = () => {
           </CardContent>
         </Card>
       </div>
+
       <div className="w-1/3">
         <WalletList />
+        <div className="mt-4"></div>
       </div>
+      <WalletsFromSeed />
     </div>
   );
 };
