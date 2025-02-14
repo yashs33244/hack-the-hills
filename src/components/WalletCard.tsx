@@ -54,6 +54,7 @@ const WalletCard = ({
   };
 
   const handleTransactionClick = () => {
+    setIsTransactionModalOpen(true);
     setIsAmountInputVisible(true);
   };
 
@@ -122,22 +123,10 @@ const WalletCard = ({
               <QRCode value={qrValue} size={200} />
             </div>
           )}
-          {isAmountInputVisible ? (
-            <form onSubmit={handleAmountSubmit} className="flex gap-2">
-              <input
-                type="number"
-                step="0.01"
-                placeholder="Enter amount in SOL"
-                className="flex-1 p-2 border rounded-lg"
-                onChange={(e) => setAmount(parseFloat(e.target.value))}
-              />
-              <Button type="submit">Submit</Button>
-            </form>
-          ) : (
-            <Button className="w-full" onClick={handleTransactionClick}>
-              New Transaction
-            </Button>
-          )}
+
+          <Button className="w-full" onClick={handleTransactionClick}>
+            New Transaction
+          </Button>
         </div>
       </CardContent>
 
