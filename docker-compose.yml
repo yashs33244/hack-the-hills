@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   next-app:
-    image: yashsaini/wallet-app:latest
+    image: yashs3324/wallet-app:latest
     build:
       context: .
       dockerfile: Dockerfile
