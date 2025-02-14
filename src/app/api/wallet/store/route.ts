@@ -5,6 +5,7 @@ import { mnemonicToSeed, generateMnemonic } from 'bip39';
 import { Keypair } from '@solana/web3.js';
 import { Wallet } from 'ethers';
 import * as ed25519 from 'ed25519-hd-key';
+import bs58 from 'bs58';
 
 const prisma = new PrismaClient();
 
@@ -35,62 +36,57 @@ export async function POST(req: Request) {
 
     // Generate wallet based on type
     let publicKey: string;
-    
+    let privateKey: string;
+
     if (walletType === 'solana') {
       const seed = await mnemonicToSeed(finalSeedPhrase);
-      const solanaSeed = seed.toString('hex');
-      const derivedSeed = ed25519.derivePath("m/44'/501'/0'/0'", solanaSeed).key;
+      const derivedSeed = ed25519.derivePath("m/44'/501'/0'/0'", seed.toString('hex')).key;
       const solanaKeypair = Keypair.fromSeed(derivedSeed);
       publicKey = solanaKeypair.publicKey.toBase58();
+      privateKey = bs58.encode(solanaKeypair.secretKey); // Base58 encode Solana private key
     } else if (walletType === 'ethereum') {
       const ethWallet = Wallet.fromPhrase(finalSeedPhrase);
       publicKey = ethWallet.address;
+      privateKey = ethWallet.privateKey;
     } else {
       return NextResponse.json({ error: 'Invalid wallet type' }, { status: 400 });
     }
 
+    // Check if wallet already exists
     const existingWallet = await prisma.wallet.findFirst({
       where: {
-        label: label,
-        publicKey: publicKey,
+        label,
+        publicKey,
         userId: decodedToken.userId,
-      }
+      },
     });
-    
+
     if (existingWallet) {
-      // Return the existing wallet
-      
       return NextResponse.json({
         success: false,
         wallet: existingWallet,
         seedPhrase: finalSeedPhrase,
-        message: 'Wallet already exists'
+        privateKey, // Return private key even for existing wallets
+        message: 'Wallet already exists',
       });
     }
 
     // Create a new wallet if it doesn't exist
-    const walletCount = await prisma.wallet.count({
-      where: {
-        type: walletType,
-        userId: decodedToken.userId
-      }
-    });
-    
     const wallet = await prisma.wallet.create({
       data: {
         publicKey,
         type: walletType,
         userId: decodedToken.userId,
-        label: label
-      }
+        label,
+      },
     });
 
     return NextResponse.json({
       success: true,
       wallet,
-      seedPhrase: finalSeedPhrase
+      seedPhrase: finalSeedPhrase,
+      privateKey, // Always send private key to frontend
     });
-
   } catch (error) {
     console.error('Error storing wallet:', error);
     return NextResponse.json(
