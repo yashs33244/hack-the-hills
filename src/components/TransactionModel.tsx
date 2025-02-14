@@ -135,6 +135,7 @@ export const TransactionModal = ({
 
       transaction.addSignature(
         new PublicKey(signatureData.publicKey),
+        //@ts-ignore
         bs58.decode(signatureData.signature)
       );
 

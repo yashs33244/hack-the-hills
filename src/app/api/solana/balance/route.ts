@@ -1,68 +1,69 @@
-// pages/api/solana/balance.ts
-import { Connection, PublicKey } from '@solana/web3.js';
-import type { NextApiRequest, NextApiResponse } from 'next';
+// app/api/solana/balance/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { Connection, PublicKey } from "@solana/web3.js";
 
 const SOLANA_CLUSTERS = {
-  devnet: 'https://api.devnet.solana.com',
-  mainnet: 'https://api.mainnet-beta.solana.com'
+  devnet: process.env.SOLANA_DEVNET_URL || "https://api.devnet.solana.com",
+  mainnet: process.env.SOLANA_MAINNET_URL || "https://api.mainnet-beta.solana.com",
 } as const;
 
 type SolanaNetwork = keyof typeof SOLANA_CLUSTERS;
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Origin', '*'); // Allow all origins (or specify your frontend URL)
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  // Handle OPTIONS request for CORS preflight
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
+export async function POST(request: NextRequest) {
   try {
-    const { publicKey, network } = req.body;
+    const { publicKey, network } = await request.json();
 
+    // Validate required fields
     if (!publicKey || !network) {
-      return res.status(400).json({ 
-        error: 'Missing required parameters',
-        details: {
-          publicKey: !publicKey ? 'Public key is required' : null,
-          network: !network ? 'Network is required' : null
-        }
-      });
+      return NextResponse.json(
+        {
+          error: "Missing required parameters",
+          details: {
+            publicKey: !publicKey ? "Public key is required" : null,
+            network: !network ? "Network is required" : null,
+          },
+        },
+        { status: 400 }
+      );
     }
 
+    // Validate network
     if (!Object.keys(SOLANA_CLUSTERS).includes(network)) {
-      return res.status(400).json({ 
-        error: `Invalid network. Must be one of: ${Object.keys(SOLANA_CLUSTERS).join(', ')}`
-      });
+      return NextResponse.json(
+        {
+          error: `Invalid network. Must be one of: ${Object.keys(SOLANA_CLUSTERS).join(", ")}`,
+        },
+        { status: 400 }
+      );
     }
 
+    // Connect to Solana cluster
     const connection = new Connection(SOLANA_CLUSTERS[network as SolanaNetwork]);
     const pubKey = new PublicKey(publicKey);
+
+    // Fetch balance
     const balance = await connection.getBalance(pubKey);
-    
+
     // Convert lamports to SOL (1 SOL = 1e9 lamports)
     const solBalance = balance / 1e9;
 
-    return res.status(200).json({ 
+    return NextResponse.json({
       success: true,
-      balance: solBalance 
+      balance: solBalance,
     });
-
-  } catch (error) {
-    console.error('Error fetching balance:', error);
-    return res.status(500).json({ 
-      error: 'Error fetching balance',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
+  } catch (error: any) {
+    console.error("Error fetching balance:", error);
+    return NextResponse.json(
+      {
+        error: "Error fetching balance",
+        details: error.message || "Unknown error",
+      },
+      { status: 500 }
+    );
   }
+}
+
+// Optional: Handle CORS preflight requests
+export async function OPTIONS() {
+  return NextResponse.json({}, { status: 200 });
 }

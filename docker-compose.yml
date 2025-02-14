@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  next-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:mysecretpassword@db:5432/wallet
+      - JWT_SECRET=mysecret
+    volumes:
+      - .:/app
+    command: npm start
+
+  db:
+    image: postgres
+    container_name: wallet
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=mysecretpassword
+      - POSTGRES_DB=wallet
+    ports:
+      - "5432:5432"
+    volumes:
+      - wallet_data:/var/lib/postgresql/data
+
+volumes:
+  wallet_data:
