@@ -4,16 +4,13 @@ FROM node:20-alpine
 # Set the working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json
+# Copy package.json and package-lock.json first for better caching
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies, ensuring all are installed including Next.js
+RUN npm install --production
 
-# Install additional dependencies required for your application
-RUN npm install @prisma/client zod jsonwebtoken
-
-# Copy the Prisma schema file
+# Copy the Prisma schema file separately
 COPY prisma/schema.prisma ./prisma/schema.prisma
 
 # Copy the rest of the application code

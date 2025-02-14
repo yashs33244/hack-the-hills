@@ -12,8 +12,10 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://postgres:mysecretpassword@db:5432/wallet
       - JWT_SECRET=mysecret
+    depends_on:
+      - db
     volumes:
-      - .:/app
+      - wallet_data:/app/data  # Mount only necessary data instead of overwriting the app
 
   db:
     image: postgres
