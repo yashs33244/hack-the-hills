@@ -14,15 +14,9 @@ import {
   Camera,
   ExternalLink,
 } from "lucide-react";
-import {
-  Connection,
-  PublicKey,
-  Transaction,
-  TransactionInstruction,
-} from "@solana/web3.js";
-import bs58 from "bs58";
+import { Connection, PublicKey, Transaction } from "@solana/web3.js";
 import QRCode from "react-qr-code";
-import { Scanner } from "@yudiel/react-qr-scanner";
+import { QrReader } from "react-qr-reader";
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -73,63 +67,59 @@ export const TransactionModal = ({
     });
   };
 
-  const handleQRScan = (data: string) => {
+  const handleQRScan = (result: string | null) => {
+    if (!result) {
+      console.error("No QR code data received");
+      return;
+    }
     try {
-      const scannedData = JSON.parse(data);
-      if (scannedData.signature && scannedData.publicKey) {
-        handleTransaction(scannedData);
+      const scannedData = JSON.parse(result);
+      if (scannedData.signed_transaction && scannedData.recipient) {
+        handleSignedTransaction(scannedData);
+      } else {
+        console.error("Invalid QR code format");
+        setErrorMessage("Invalid QR code format");
       }
     } catch (error) {
+      console.error("QR Scan Error:", error);
       setErrorMessage("Invalid QR code data");
     }
   };
 
-  const handleTransaction = async (coldWalletResponse: {
-    signature: string;
-    publicKey: string;
+  const handleSignedTransaction = async (data: {
+    signed_transaction: string;
+    recipient: string;
   }) => {
     try {
       setStep("processing");
-
       const connection = new Connection(SOLANA_RPC_URL);
-      const { blockhash } = await connection.getRecentBlockhash();
-
-      const transaction = new Transaction({
-        feePayer: new PublicKey(coldWalletResponse.publicKey),
-        recentBlockhash: blockhash,
-      }).add(
-        new TransactionInstruction({
-          programId: new PublicKey("11111111111111111111111111111111"),
-          keys: [
-            {
-              pubkey: new PublicKey(coldWalletResponse.publicKey),
-              isSigner: true,
-              isWritable: true,
-            },
-            {
-              pubkey: new PublicKey(recipientAddress),
-              isSigner: false,
-              isWritable: true,
-            },
-          ],
-          data: Buffer.from([2, ...new Array(8).fill(Number(amount))]),
-        })
+      const signedTransactionBuffer = Buffer.from(
+        data.signed_transaction,
+        "base64"
       );
-
-      transaction.addSignature(
-        new PublicKey(coldWalletResponse.publicKey),
-        bs58.decode(coldWalletResponse.signature)
+      const transaction = Transaction.from(signedTransactionBuffer);
+      const txid = await connection.sendRawTransaction(
+        signedTransactionBuffer,
+        {
+          skipPreflight: false,
+          preflightCommitment: "confirmed",
+        }
       );
-
-      const txid = await connection.sendRawTransaction(transaction.serialize());
-      await connection.confirmTransaction(txid);
-
+      const confirmation = await connection.confirmTransaction(
+        txid,
+        "confirmed"
+      );
+      if (confirmation.value.err) {
+        throw new Error(
+          "Transaction failed: " + JSON.stringify(confirmation.value.err)
+        );
+      }
       setTransactionId(txid);
       setStep("completed");
     } catch (error: any) {
-      console.error("Error completing transaction:", error);
+      console.error("Transaction Error:", error);
       setStep("error");
-      setErrorMessage(error.message);
+      setErrorMessage(error.message || "Transaction failed");
     }
   };
 
@@ -151,9 +141,8 @@ export const TransactionModal = ({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Solana Transaction</DialogTitle>
+          <DialogTitle>Solana Transaction (Devnet)</DialogTitle>
         </DialogHeader>
-
         <div className="space-y-4">
           {step === "input" && (
             <div className="space-y-4">
@@ -177,7 +166,6 @@ export const TransactionModal = ({
               </Button>
             </div>
           )}
-
           {step === "qr" && (
             <div className="space-y-4">
               <div className="flex justify-center p-4 bg-white">
@@ -188,7 +176,6 @@ export const TransactionModal = ({
                   className="mx-auto"
                 />
               </div>
-
               <div className="text-center space-y-2">
                 <p className="text-sm text-gray-500">Transaction Details:</p>
                 <p>Amount: {amount} SOL</p>
@@ -197,33 +184,31 @@ export const TransactionModal = ({
                   {recipientAddress.slice(-4)}
                 </p>
               </div>
-
-              <Button
-                className="w-full"
-                onClick={() => setShowScanner(true)}
-                startIcon={<Camera className="w-4 h-4 mr-2" />}
-              >
+              <Button className="w-full" onClick={() => setShowScanner(true)}>
+                <Camera className="w-4 h-4 mr-2" />
                 Scan Response QR
               </Button>
-
               {showScanner && (
                 <div className="mt-4">
-                  <Scanner
-                    onDecode={handleQRScan}
-                    onError={(error) => console.log(error?.message)}
+                  <QrReader
+                    constraints={{ facingMode: "environment" }}
+                    onResult={(result) => {
+                      if (result) {
+                        handleQRScan(result.getText());
+                      }
+                    }}
+                    videoStyle={{ width: "100%" }}
                   />
                 </div>
               )}
             </div>
           )}
-
           {step === "processing" && (
             <div className="flex flex-col items-center justify-center space-y-2">
               <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-              <p>Processing transaction...</p>
+              <p>Processing transaction on Devnet...</p>
             </div>
           )}
-
           {step === "completed" && (
             <div className="flex flex-col items-center justify-center space-y-4">
               <CheckCircle className="h-8 w-8 text-green-600" />
@@ -232,7 +217,7 @@ export const TransactionModal = ({
               </p>
               {transactionId && (
                 <a
-                  href={`${SOLANA_EXPLORER_URL}/${transactionId}`}
+                  href={`${SOLANA_EXPLORER_URL}/${transactionId}?cluster=devnet`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center text-blue-500 hover:text-blue-600"
@@ -243,7 +228,6 @@ export const TransactionModal = ({
               )}
             </div>
           )}
-
           {step === "error" && (
             <div className="flex flex-col items-center justify-center space-y-2 text-red-600">
               <AlertCircle className="h-8 w-8" />
