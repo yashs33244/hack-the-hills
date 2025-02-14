@@ -33,6 +33,7 @@
     "ethers": "^6.13.5",
     "framer-motion": "^11.5.6",
     "jose": "^5.9.6",
+    "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.441.0",
     "mini-svg-data-uri": "^1.4.4",
     "next": "14.2.11",
@@ -44,7 +45,8 @@
     "recoil": "^0.7.7",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
-    "tweetnacl": "^1.0.3"
+    "tweetnacl": "^1.0.3",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

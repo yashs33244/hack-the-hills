@@ -133,8 +133,6 @@ const WalletCard = ({
       <TransactionModal
         isOpen={isTransactionModalOpen}
         onClose={() => setIsTransactionModalOpen(false)}
-        senderPublicKey={wallet.publicKey}
-        amount={amount || 0}
       />
     </Card>
   );

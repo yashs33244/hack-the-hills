@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy package.json and package-lock.json first for better caching
 COPY package*.json ./
 
-# Install dependencies, ensuring all are installed including Next.js
-RUN npm install --production
+# Install ALL dependencies (including dev dependencies) with legacy peer deps
+RUN npm install --legacy-peer-deps
 
 # Copy the Prisma schema file separately
 COPY prisma/schema.prisma ./prisma/schema.prisma
