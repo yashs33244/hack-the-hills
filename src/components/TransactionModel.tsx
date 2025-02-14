@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +38,11 @@ export const TransactionModal = ({
   const [errorMessage, setErrorMessage] = useState("");
   const [showScanner, setShowScanner] = useState(false);
   const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+
+  // Add refs to track transaction state
+  const isProcessingRef = useRef(false);
+  const processedTxIds = useRef(new Set<string>());
 
   const validatePublicKey = (key: string): boolean => {
     try {
@@ -67,15 +72,16 @@ export const TransactionModal = ({
     });
   };
 
-  const handleQRScan = (result: string | null) => {
-    if (!result) {
-      console.error("No QR code data received");
+  const handleQRScan = async (result: string | null) => {
+    if (!isScanning || !result || isProcessingRef.current) {
       return;
     }
+
     try {
       const scannedData = JSON.parse(result);
       if (scannedData.signed_transaction && scannedData.recipient) {
-        handleSignedTransaction(scannedData);
+        setIsScanning(false); // Disable scanning before processing
+        await handleSignedTransaction(scannedData);
       } else {
         console.error("Invalid QR code format");
         setErrorMessage("Invalid QR code format");
@@ -90,14 +96,34 @@ export const TransactionModal = ({
     signed_transaction: string;
     recipient: string;
   }) => {
+    if (isProcessingRef.current) {
+      console.log("Transaction already in progress");
+      return;
+    }
+
     try {
+      isProcessingRef.current = true;
       setStep("processing");
+      setShowScanner(false);
+
       const connection = new Connection(SOLANA_RPC_URL);
       const signedTransactionBuffer = Buffer.from(
         data.signed_transaction,
         "base64"
       );
       const transaction = Transaction.from(signedTransactionBuffer);
+
+      // Check if transaction was already processed
+      const txSignature = transaction.signatures[0]?.signature;
+      if (
+        txSignature &&
+        processedTxIds.current.has(Buffer.from(txSignature).toString("base64"))
+      ) {
+        console.log("Transaction already processed");
+        setStep("completed");
+        return;
+      }
+
       const txid = await connection.sendRawTransaction(
         signedTransactionBuffer,
         {
@@ -105,21 +131,29 @@ export const TransactionModal = ({
           preflightCommitment: "confirmed",
         }
       );
+
+      // Add transaction to processed set
+      processedTxIds.current.add(txid);
+
       const confirmation = await connection.confirmTransaction(
         txid,
         "confirmed"
       );
+
       if (confirmation.value.err) {
         throw new Error(
           "Transaction failed: " + JSON.stringify(confirmation.value.err)
         );
       }
+
       setTransactionId(txid);
       setStep("completed");
     } catch (error: any) {
       console.error("Transaction Error:", error);
       setStep("error");
       setErrorMessage(error.message || "Transaction failed");
+    } finally {
+      isProcessingRef.current = false;
     }
   };
 
@@ -130,11 +164,20 @@ export const TransactionModal = ({
     setErrorMessage("");
     setShowScanner(false);
     setTransactionId(null);
+    setIsScanning(false);
+    isProcessingRef.current = false;
   };
 
   const handleClose = () => {
     resetModal();
     onClose();
+  };
+
+  const startScanner = () => {
+    if (!isProcessingRef.current) {
+      setShowScanner(true);
+      setIsScanning(true);
+    }
   };
 
   return (
@@ -184,11 +227,15 @@ export const TransactionModal = ({
                   {recipientAddress.slice(-4)}
                 </p>
               </div>
-              <Button className="w-full" onClick={() => setShowScanner(true)}>
+              <Button
+                className="w-full"
+                onClick={startScanner}
+                disabled={isProcessingRef.current}
+              >
                 <Camera className="w-4 h-4 mr-2" />
                 Scan Response QR
               </Button>
-              {showScanner && (
+              {showScanner && isScanning && (
                 <div className="mt-4">
                   <QrReader
                     constraints={{ facingMode: "environment" }}
@@ -226,6 +273,9 @@ export const TransactionModal = ({
                   <ExternalLink className="ml-1 h-4 w-4" />
                 </a>
               )}
+              <Button variant="outline" onClick={resetModal}>
+                New Transaction
+              </Button>
             </div>
           )}
           {step === "error" && (
