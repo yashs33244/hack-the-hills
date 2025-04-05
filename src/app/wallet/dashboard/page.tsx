@@ -7,7 +7,7 @@ import WalletsFromSeed from "@/components/WalletsFromSeed";
 
 export default function WalletSection() {
   return (
-    <main className="flex-grow container mx-auto px-16 py-12">
+    <main className="container mx-auto px-4 md:px-16 pt-24 pb-12">
       <div className="flex items-center mb-8">
         <Link
           href="/wallet"

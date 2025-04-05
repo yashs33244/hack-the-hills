@@ -1,88 +1,98 @@
-import React, { useEffect, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import QRCode from "react-qr-code";
-import { Button } from "@/components/ui/button";
+import { AlertTriangle, Key, KeyRound, Sprout } from "lucide-react";
 
-interface QRDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
+interface WalletDetails {
   publicKey: string;
   privateKey: string;
   seedPhrase: string;
 }
 
-const QRDialog: React.FC<QRDialogProps> = ({
-  isOpen,
-  onClose,
-  publicKey,
-  privateKey,
-  seedPhrase,
-}) => {
-  const [timeLeft, setTimeLeft] = useState(120); // 2 minutes in seconds
+interface QRDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  walletDetails: WalletDetails | null;
+}
 
-  useEffect(() => {
-    if (isOpen) {
-      const timer = setInterval(() => {
-        setTimeLeft((prevTime) => {
-          if (prevTime <= 1) {
-            clearInterval(timer); // Stop the timer when it reaches 0
-            onClose(); // Close the dialog
-            return 0;
-          }
-          return prevTime - 1; // Decrement the timer
-        });
-      }, 1000); // Update every second
+const QRDialog = ({ open, onOpenChange, walletDetails }: QRDialogProps) => {
+  if (!walletDetails) return null;
 
-      return () => clearInterval(timer); // Cleanup the interval on unmount
-    }
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
-  const qrValue = JSON.stringify({
-    publicKey,
-    privateKey,
-    seedPhrase,
+  // Create a single object with all wallet details for the QR code
+  const qrData = JSON.stringify({
+    publicKey: walletDetails.publicKey,
+    privateKey: walletDetails.privateKey,
+    seedPhrase: walletDetails.seedPhrase,
   });
 
-  // Format the time left as MM:SS
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds < 10 ? "0" : ""}${remainingSeconds}`;
-  };
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
-        <h2 className="text-xl font-bold mb-4 text-black">
-          This contains your wallet details
-        </h2>
-        <div className="flex justify-center mb-4">
-          <QRCode value={qrValue} size={200} />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-black/95 border-purple-800 text-white">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold">Wallet Created Successfully</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-6 p-4">
+          {/* Warning Message */}
+          <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-red-400 font-medium">Important Security Warning</p>
+              <p className="text-sm text-red-300/90">
+                This QR code contains sensitive wallet information. Never share it with anyone.
+                Store it securely and keep your private key and seed phrase confidential.
+              </p>
+            </div>
+          </div>
+
+          {/* QR Code */}
+          <div className="flex flex-col items-center space-y-4 bg-white/5 rounded-lg p-6">
+            <QRCode
+              value={qrData}
+              size={200}
+              style={{ background: 'white', padding: '1rem' }}
+            />
+            <p className="text-sm text-gray-400 text-center">
+              Scan this QR code to access your wallet details
+            </p>
+          </div>
+
+          {/* Wallet Details */}
+          <div className="space-y-4">
+            {/* Public Key */}
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Key className="h-4 w-4 text-purple-400" />
+                <p className="text-sm font-medium text-purple-400">Public Key</p>
+              </div>
+              <p className="text-sm font-mono bg-white/5 p-2 rounded break-all">
+                {walletDetails.publicKey}
+              </p>
+            </div>
+
+            {/* Private Key */}
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <KeyRound className="h-4 w-4 text-pink-400" />
+                <p className="text-sm font-medium text-pink-400">Private Key</p>
+              </div>
+              <p className="text-sm font-mono bg-white/5 p-2 rounded break-all">
+                {walletDetails.privateKey}
+              </p>
+            </div>
+
+            {/* Seed Phrase */}
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Sprout className="h-4 w-4 text-green-400" />
+                <p className="text-sm font-medium text-green-400">Seed Phrase</p>
+              </div>
+              <p className="text-sm font-mono bg-white/5 p-2 rounded break-all">
+                {walletDetails.seedPhrase}
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="space-y-2">
-          <p className="text-sm text-black">
-            <span className="font-semibold">Public Key:</span> {publicKey}
-          </p>
-          <p className="text-sm text-black">
-            <span className="font-semibold">Public Key:</span> {privateKey}
-          </p>
-          <p className="text-sm text-red-600">
-            Warning: Do not share your private key or seed phrase with anyone.
-            This QR code contains sensitive information.
-          </p>
-        </div>
-        <div className="text-center mt-4">
-          <p className="text-sm text-gray-600">
-            This dialog will close in:{" "}
-            <span className="font-semibold">{formatTime(timeLeft)}</span>
-          </p>
-        </div>
-        <Button className="w-full mt-4 bg-black text-white" onClick={onClose}>
-          Close
-        </Button>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

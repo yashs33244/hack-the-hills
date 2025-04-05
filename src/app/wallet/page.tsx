@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, ArrowRight, Lock, Shield, Zap } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useRecoilState } from "recoil";
 import { currency } from "../store/currency";
@@ -17,6 +17,14 @@ export default function MainSection() {
   const [inputValue, setInputValue] = useState("");
   const [coin, setCoin] = useState("");
   const [generateClicked, setGenerateClicked] = useState(false);
+
+  // Add useEffect to scroll to top when currency is selected
+  useEffect(() => {
+    if (!home) {
+      window.scrollTo(0, 0);
+    }
+  }, [home]);
+
   const handleClick = () => {
     if (inputValue.trim()) {
       // If input has text, set phrase and create to false

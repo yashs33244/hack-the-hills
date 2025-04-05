@@ -1,0 +1,12 @@
+[
+  {
+    "id": "0xEa96d3905C0Ec99BFeacACA907a7F9C4F5d6cc8d",
+    "address": "0xEa96d3905C0Ec99BFeacACA907a7F9C4F5d6cc8d",
+    "privateKey": "0x8681a2d3486de2615a32289704d92233043945e778c3faa6361314c4e1a62502",
+    "publicKey": "0x03ead86afd4feb359685186bb40d9f4617a75323bffe8875bf8f65a36e2cc1648d",
+    "type": "hot",
+    "name": "Wallet 5465",
+    "balance": "0.0",
+    "createdAt": "2025-04-05T07:47:45.465Z"
+  }
+]
