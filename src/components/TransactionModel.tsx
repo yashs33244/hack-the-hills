@@ -72,6 +72,9 @@ export const TransactionModal = ({
     });
   };
 
+  // here this thing will be eliminated we dont need to scan the QR code
+  // signed txn willl be sent to webhook
+
   const handleQRScan = async (result: string | null) => {
     if (!isScanning || !result || isProcessingRef.current) {
       return;
@@ -91,6 +94,8 @@ export const TransactionModal = ({
       setErrorMessage("Invalid QR code data");
     }
   };
+
+  // now get fetch from api to get the status of the transaction which will webhook send to the server
 
   const handleSignedTransaction = async (data: {
     signed_transaction: string;

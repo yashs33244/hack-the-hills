@@ -6,9 +6,17 @@ import { Alert, AlertDescription } from "./ui/alert";
 import { useRecoilValue, useRecoilState } from "recoil";
 import { currency } from "../app/store/currency";
 import WalletsFromSeed from "./WalletsFromSeed";
-import WalletList from "./WalletList";
 import QRDialog from "./QRDialog";
+import FaceAuthEncryption from "./FaceAuthEncryption";
 import { Input } from "./ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "./ui/dialog";
 
 interface WalletDetails {
   publicKey: string;
@@ -24,7 +32,11 @@ const WalletManager = () => {
   const [walletLabel, setWalletLabel] = useState("");
   const [newWalletId, setNewWalletId] = useState<string | null>(null);
   const [isQRDialogOpen, setIsQRDialogOpen] = useState(false);
-  const [walletDetails, setWalletDetails] = useState<WalletDetails | null>(null);
+  const [isFaceAuthOpen, setIsFaceAuthOpen] = useState(false);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [walletDetails, setWalletDetails] = useState<WalletDetails | null>(
+    null
+  );
 
   useEffect(() => {
     if (currencyState.phrase) {
@@ -93,14 +105,29 @@ const WalletManager = () => {
     }
   };
 
+  const handleQRDialogClose = () => {
+    setIsQRDialogOpen(false);
+    setIsConfirmDialogOpen(true);
+  };
+
+  const handleConfirmLocalStorage = () => {
+    setIsConfirmDialogOpen(false);
+    setIsFaceAuthOpen(true);
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <Card className="lg:col-span-3 bg-black/50 border-purple-800">
         <CardContent className="pt-6">
           <div className="space-y-4">
             <div>
-              <h3 className="text-lg font-semibold text-white mb-2">Create New {currencyState.name} Wallet</h3>
-              <p className="text-sm text-gray-400">Enter a label for your new wallet and optionally provide a seed phrase.</p>
+              <h3 className="text-lg font-semibold text-white mb-2">
+                Create New {currencyState.name} Wallet
+              </h3>
+              <p className="text-sm text-gray-400">
+                Enter a label for your new wallet and optionally provide a seed
+                phrase.
+              </p>
             </div>
             <div className="space-y-4">
               <div>
@@ -119,7 +146,9 @@ const WalletManager = () => {
                   onChange={(e) => setSeedPhrase(e.target.value)}
                   className="bg-black/30 border-purple-800 text-white placeholder:text-gray-500"
                 />
-                <p className="text-xs text-gray-500 mt-1">Leave empty to generate a new seed phrase</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Leave empty to generate a new seed phrase
+                </p>
               </div>
               <Button
                 onClick={handleStoreWallet}
@@ -135,8 +164,46 @@ const WalletManager = () => {
 
       <QRDialog
         open={isQRDialogOpen}
-        onOpenChange={setIsQRDialogOpen}
+        onOpenChange={handleQRDialogClose}
         walletDetails={walletDetails}
+      />
+
+      <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <DialogContent className="bg-black text-white">
+          <DialogHeader>
+            <DialogTitle>Store Wallet Data Locally?</DialogTitle>
+            <DialogDescription>
+              Would you like to securely store your wallet's private key and
+              seed phrase locally using face authentication? This will encrypt
+              your data using AES-256-GCM with a key derived from your facial
+              features.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsConfirmDialogOpen(false)}
+            >
+              Skip
+            </Button>
+            <Button
+              onClick={handleConfirmLocalStorage}
+              className="bg-gradient-to-r from-purple-500 to-pink-500"
+            >
+              Secure with Face Auth
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <FaceAuthEncryption
+        open={isFaceAuthOpen}
+        onOpenChange={setIsFaceAuthOpen}
+        walletData={walletDetails}
+        onEncryptionComplete={() => {
+          // Handle completion (e.g., show success message)
+          setWalletDetails(null);
+        }}
       />
     </div>
   );

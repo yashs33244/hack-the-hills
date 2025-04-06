@@ -8,12 +8,14 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  wallets   Wallet[]
+  id              String   @id @default(cuid())
+  email           String   @unique
+  password        String
+  faceDescriptor  String? // Stored as JSON string
+  faceAuthEnabled Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  wallets         Wallet[]
 }
 
 model Wallet {
