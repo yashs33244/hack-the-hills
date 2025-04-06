@@ -96,6 +96,7 @@ export const TransactionModal = ({
   };
 
   // now get fetch from api to get the status of the transaction which will webhook send to the server
+  // we will store the transaction id in the database and then we will fetch the status of the transaction from the database
 
   const handleSignedTransaction = async (data: {
     signed_transaction: string;
@@ -122,6 +123,7 @@ export const TransactionModal = ({
       const txSignature = transaction.signatures[0]?.signature;
       if (
         txSignature &&
+        // @ts-ignore
         processedTxIds.current.has(Buffer.from(txSignature).toString("base64"))
       ) {
         console.log("Transaction already processed");
